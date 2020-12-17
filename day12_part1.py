@@ -1,5 +1,5 @@
 from manim import *
-config.max_files_cached = 300
+config.max_files_cached = 1000
 
 class Day12Part1(GraphScene, MovingCameraScene):
     CONFIG = {
@@ -89,7 +89,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": "E3"
                 }
             }
-        self.east_examples(east_directions)
+        self.show_east_examples(east_directions)
         # west examples
         west_directions = {
                 "east": {
@@ -463,7 +463,62 @@ class Day12Part1(GraphScene, MovingCameraScene):
         for obj in this_scene_objects:
             self.remove(obj)
 
-    def east_examples(self, directions):
+    def boat_moves_east(self, boat, movement_dictionary, show_detail = True):
+        """
+        East_movement selects the correct boat, creates correct graph and correct
+            camera frame.   Optionally also adds explanatory text (camera frame 
+            altered to include text).
+        Accepts:
+            boat (ImageMobject instance): boat
+            movement_dictionary (dict): Format: {
+                'boat' (str): boat object identifier,
+                'start_location' (list of ints): beginning location [x,y],
+                'movement' (str): 'E<#>'
+                }
+            show_detail (bool): Whether or not explanatory detail should be shown
+        Returns:
+            List of objects added to graph. Also adds video and alters camera frame
+        """
+        movement = int(movement_dictionary['movement'][1:])
+        start_location = movement_dictionary['start_location']
+        boat_start = [start_location[0] - self.boat_delta,
+                start_location[1]]
+        (curr_graph, boat_graph, brace) = self.move_boat_horizontal(
+                start_location, movement)
+        boat_end = [boat_start[0] + movement, boat_start[1]]
+        animation_parameters = {
+                "run_time": 3,
+                "rate_func": linear
+                }
+        current_boat = boat.copy()
+        current_boat.move_to(self.coords_to_point(boat_start[0], boat_start[1]))
+        end_boat = current_boat.copy()
+        end_boat.move_to(self.coords_to_point(boat_end[0], boat_end[1]))
+        return_objects = [current_boat, curr_graph]
+        frame_group = Group(current_boat, end_boat, curr_graph)
+        if show_detail is True:
+            bracetext = brace.get_text(movement_dictionary['movement'])
+            bracetext.set_color(RED)
+            bracetext.bg=SurroundingRectangle(bracetext, color=BLACK,
+                    fill_color=BLACK, fill_opacity=1)
+            self.add(current_boat, bracetext.bg, bracetext)
+            frame_group = Group (*frame_group, brace, bracetext, bracetext.bg)
+            return_objects += [bracetext.bg, brace, bracetext]
+        else:
+            self.add(current_boat)
+        self.move_camera_around_group(frame_group)
+        self.wait(1)
+        self.play(
+                MoveAlongPath(current_boat, boat_graph),
+                ShowCreation(curr_graph),
+                **animation_parameters
+                )
+        if show_detail is True:
+            self.add(brace)
+        self.wait(2)
+        return return_objects
+    
+    def show_east_examples(self, directions):
         """
         East_examples shows the boat moving east.
         Accepts:
@@ -478,42 +533,9 @@ class Day12Part1(GraphScene, MovingCameraScene):
         this_scene_objects = []
         for key in directions.keys():
             self.camera_frame.save_state()
-            movement = int(directions[key]["movement"][1:])
-            start_location = directions[key]["start_location"]
-            boat_location = [start_location[0] - self.boat_delta, 
-                    start_location[1]]
-            (curr_graph, boat_graph, brace) = self.move_boat_horizontal(
-                    start_location, movement)
-            end_location = [ start_location[0], 
-                        start_location[1] + movement]
-            animation_parameters = {
-                    "run_time": 3,
-                    "rate_func": linear
-                    }
-            current_boat = self.boats[key]['boat'] 
-            current_boat.move_to(self.coords_to_point(boat_location[0], boat_location[1]))
-            self.current_cam_update = self.boats[key]['movement']
-            bracetext=brace.get_text(directions[key]['movement'])
-            bracetext.set_color(RED)
-            bracetext.bg=SurroundingRectangle(bracetext, color=BLACK, 
-                    fill_color=BLACK, fill_opacity=1)
-            self.add(current_boat, bracetext.bg, bracetext)
-            this_group = Group(current_boat, curr_graph, brace, bracetext)
-            self.wait(1)
-            self.play(self.camera_frame.scale,0.3,self.camera_frame.move_to,current_boat)
-            self.camera_frame.add_updater(self.current_cam_update)
-            self.play(
-                    MoveAlongPath(current_boat, boat_graph),
-                    ShowCreation(curr_graph),
-                    **animation_parameters
-                    )
-            self.camera_frame.remove_updater(self.current_cam_update)
-            self.move_camera_around_group(this_group)
-            self.add(brace)
-            self.wait(2)
-            for obj in [current_boat, curr_graph, 
-                    brace, bracetext, bracetext.bg]:
-                this_scene_objects.append(obj)
+            this_boat = self.boats[key]['boat']
+            this_key_objects = self.boat_moves_east(this_boat, directions[key], True)
+            this_scene_objects += this_key_objects
             self.play(Restore(self.camera_frame))
         self.wait(5)
         for obj in this_scene_objects:
