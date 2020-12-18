@@ -10,13 +10,13 @@ class Day12Part1(GraphScene, MovingCameraScene):
             "x_axis_width": 8,
             "x_tick_frequency": 1,
             "x_axis_label": None,
-            "y_min": 0,
-            "y_max": 15,
+            "y_min": -8,
+            "y_max": 7,
             "y_axis_height": 6,
             "y_tick_frequency": 1,
             "y_axis_label": None,
             "axes_color": BLACK,
-            "graph_origin": 2 * LEFT + 2.5 * DOWN,
+            "graph_origin": 2 * LEFT,
             }
     def setup(self):
         GraphScene.setup(self)
@@ -32,7 +32,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
         self.current_location = [0, 0]
         # setup boats
         self.create_boats()
-        self.directions = ['east', 'south', 'west', 'north']
+        self.directions = ['east', 'north', 'west', 'south']
         self.direction_index = 0
         self.current_boat = self.boats[self.directions[self.direction_index]]
         self.current_boat.move_to(self.coords_to_point(0, 0))
@@ -68,6 +68,9 @@ class Day12Part1(GraphScene, MovingCameraScene):
         #       self.right_title -> self.forward_title "F"
         #       self.title_bar remains as text divider
         self.forward_description()
+        # sample input and answer
+        #       self.forward_title -> self.sample_title "Sample"
+        self.sample_display()
 
 
 
@@ -176,6 +179,8 @@ class Day12Part1(GraphScene, MovingCameraScene):
                 x_max = start_location[0] + movement
                 )
         brace = Brace(curr_graph)
+        self.current_location = [start_location[0] + movement, 
+                start_location[1]]
         return (curr_graph, boat_graph, brace)
 
     def move_boat_vertical(self, start_location, movement):
@@ -190,11 +195,13 @@ class Day12Part1(GraphScene, MovingCameraScene):
         Returns:
             Tuple of objects
         """
-        ctp = self.coords_to_point
-        curr_graph = Line( self.coords_to_point(start_location[0], 
-            start_location[1]), self.coords_to_point(start_location[0],
-                start_location[1] + movement), color=RED)
-        #positive movement means "north", negative means "south" adjust boat
+        end_location = [start_location[0],
+                start_location[1] + movement]
+        curr_graph = Line( 
+                self.coords_to_point(start_location[0], start_location[1]), 
+                self.coords_to_point(end_location[0],end_location[1]),
+                color=RED)
+        # positive movement means "north", negative means "south" adjust boat
         if movement >= 0:
             brace_direction = RIGHT
             this_boat_delta = -1 * self.boat_delta
@@ -207,6 +214,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                 self.coords_to_point(start_location[0] + this_boat_delta,
                     start_location[1] + movement))
         brace = Brace(curr_graph, direction=brace_direction)
+        self.current_location = end_location
         return (curr_graph, boat_graph, brace)
 
     def move_boat(self, boat, direction, movement_dictionary, 
@@ -258,7 +266,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
         frame_group = Group(current_boat, end_boat, curr_graph)
         if show_detail is True:
             bracetext = brace.get_text(movement_dictionary['movement'])
-            bracetext.set_color(RED)
+            bracetext.set_color(RED).scale(.8)
             bracetext.bg=SurroundingRectangle(bracetext, color=BLACK,
                     fill_color=BLACK, fill_opacity=1)
             self.add(current_boat, bracetext.bg, bracetext)
@@ -288,7 +296,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": str ("E<int>") 
                     }
         Returns:
-            None
+            list of objects placed on graph
         """
         this_scene_objects = []
         for key in detail_dictionary:
@@ -297,8 +305,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     detail_dictionary[key], True)
             this_scene_objects += this_key_objects
             self.wait(2)
-        for obj in this_scene_objects:
-            self.remove(obj)
+        return this_scene_objects
 
     def turn_boat(self, boat, turn_dictionary, show_detail = True):
         """
@@ -318,6 +325,10 @@ class Day12Part1(GraphScene, MovingCameraScene):
         turn_amount = int(turn_dictionary['movement'][1:])
         if direction == 'R':
             turn_amount *= -1
+        self.direction_index = (self.direction_index + (turn_amount // 90))
+        while self.direction_index < 0:
+            self.direction_index += 4
+        self.direction_index %= 4
         location = turn_dictionary["start_location"]
         boat_location = [location[0], location[1] + self.boat_delta]
         animation_parameters = {
@@ -333,7 +344,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
         self.add(boat)
         if show_detail is True:
             rotate_text = Text(turn_dictionary['movement'])
-            rotate_text.move_to(boat.get_center() + RIGHT * 1.5)
+            rotate_text.move_to(boat.get_center() + RIGHT * 1.5).scale(.8)
             rotate_text.set_color(RED)
             rotate_text.bg = SurroundingRectangle(rotate_text, color = BLACK,
                     fill_color = BLACK, fill_opacity = 1)
@@ -361,7 +372,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement" (str):  "L<int>" or "R<int>" 
                     }
         Returns:
-            None
+            list of objects placed on graph
         """
         this_scene_objects = []
         for key in detail_dictionary:
@@ -370,8 +381,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     detail_dictionary[key], True)
             self.wait(2)
             this_scene_objects += this_key_objects
-        for obj in this_scene_objects:
-            self.remove(obj)
+        return this_scene_objects
 
     def show_forward_examples(self, directions):
         """
@@ -383,7 +393,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": str ("F<int>") 
                     }
         Returns:
-            None
+            list of objects placed on graph
         """
         this_scene_objects = []
         for key in directions:
@@ -392,8 +402,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     directions[key], True)
             this_scene_objects += this_key_objects
             self.wait(2)
-        for obj in this_scene_objects:
-            self.remove(obj)
+        return this_scene_objects
 
     def show_confusion(self):
         """
@@ -443,7 +452,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                         place_object = random.choice(not_displayed)
                     else:
                         place_object = Text(sample_input.pop(random.randint(0, len(sample_input)-1)),
-                                color = RED)
+                                color = RED).scale(.8)
                     placement = (random.randint(0,3), random.randint(0,2))
                     place_object.move_to(1.25 * (placement[0]-1.5) * UP + 
                             1.25 * (placement[1] + 3) * LEFT)
@@ -459,7 +468,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
         self.idea_title.move_to(5*LEFT + 3 * UP)
         self.play(ReplacementTransform(question_title, self.idea_title))
         for index, ele in enumerate(["N2", "S2", "E1", "W5", "L90", "R90", "F82"]):
-            this_text = Text(ele, color = RED)
+            this_text = Text(ele, color = RED).scale(.8)
             this_text.move_to(1.25 * (3-index//3 - 1.5) * UP +
                     1.25 * (2 - index % 3 + 3) * LEFT)
             self.play(FadeIn(this_text))
@@ -530,7 +539,7 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": "N2"
                 },
                 "west": {
-                    "start_location" : [10, 8],
+                    "start_location" : [10, -8],
                     "movement": "N5"
                 },
                 "north": {
@@ -538,10 +547,11 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": "N3"
                 }
             }
-        self.show_move_examples('north', north_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        new_objects = self.show_move_examples('north', north_directions)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group, *new_objects)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
 
     def south_description(self):
         """
@@ -581,15 +591,15 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         south_directions = {
                 "east": {
-                    "start_location": [0, 10],
+                    "start_location": [2, 7],
                     "movement": "S4"
                 }, 
                 "south": {
-                    "start_location" : [3, 5],
+                    "start_location" : [3, 0],
                     "movement": "S2"
                 },
                 "west": {
-                    "start_location" : [10, 8],
+                    "start_location" : [10, -2],
                     "movement": "S5"
                 },
                 "north": {
@@ -597,10 +607,12 @@ class Day12Part1(GraphScene, MovingCameraScene):
                     "movement": "S3"
                 }
             }
-        self.show_move_examples('south', south_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        example_graph = self.show_move_examples('south', south_directions)
+        arrow_instruction_group = Group(*arrow_instruction_group, 
+                *example_graph)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
 
     def east_description(self):
         """
@@ -640,26 +652,28 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         east_directions = {
                 "east": {
-                    "start_location": [0, 10],
+                    "start_location": [0, 3],
                     "movement": "E4"
                 }, 
                 "south": {
-                    "start_location" : [3, 5],
+                    "start_location" : [3, -2],
                     "movement": "E2"
                 },
                 "west": {
-                    "start_location" : [15, 8],
+                    "start_location" : [15, 1],
                     "movement": "E5"
                 },
                 "north": {
-                    "start_location": [15, 3],
+                    "start_location": [15, -4],
                     "movement": "E3"
                 }
             }
-        self.show_move_examples('east', east_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        graph_objects = self.show_move_examples('east', east_directions)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group, 
+                *graph_objects)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
 
     def west_description(self):
         """
@@ -699,26 +713,28 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         west_directions = {
                 "east": {
-                    "start_location": [4, 10],
+                    "start_location": [4, 3],
                     "movement": "W4"
                 }, 
                 "south": {
-                    "start_location" : [3, 5],
+                    "start_location" : [3, -2],
                     "movement": "W2"
                 },
                 "west": {
-                    "start_location" : [15, 8],
+                    "start_location" : [15, 1],
                     "movement": "W5"
                 },
                 "north": {
-                    "start_location": [15, 3],
+                    "start_location": [15, -4],
                     "movement": "W3"
                 }
             }
-        self.show_move_examples('west', west_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        graph_objects = self.show_move_examples('west', west_directions)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group, 
+                *graph_objects)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
 
     def left_description(self):
         """
@@ -758,26 +774,28 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         left_directions = {
                 "east": {
-                    "start_location": [0, 0],
+                    "start_location": [0, -7],
                     "movement": "L90"
                 }, 
                 "north": {
-                    "start_location" : [3, 5],
+                    "start_location" : [3, -2],
                     "movement": "L180"
                 },
                 "west": {
-                    "start_location" : [10, 8],
+                    "start_location" : [10, 1],
                     "movement": "L270"
                 },
                 "south": {
-                    "start_location": [15, 0],
+                    "start_location": [15, -3],
                     "movement": "L360"
                 }
             }
-        self.show_turn_examples(left_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        graph_objects = self.show_turn_examples(left_directions)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group, 
+                *graph_objects)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
  
     def right_description(self):
         """
@@ -818,26 +836,28 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         right_directions = {
             "east": {
-                "start_location": [0, 0],
+                "start_location": [0, -7],
                 "movement": "R90"
             }, 
             "south": {
-                "start_location" : [3, 5],
+                "start_location" : [3, -2],
                 "movement": "R180"
             },
             "west": {
-                "start_location" : [10, 8],
+                "start_location" : [10, 1],
                 "movement": "R270"
             },
             "north": {
-                "start_location": [15, 0],
+                "start_location": [15, -7],
                 "movement": "R360"
             }
         }
-        self.show_turn_examples(right_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        graph_objects = self.show_turn_examples(right_directions)
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group,
+                *graph_objects)
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
 
     def forward_description(self):
         """
@@ -877,25 +897,175 @@ class Day12Part1(GraphScene, MovingCameraScene):
         ## do sample movements
         forward_directions = {
                 "east": {
-                    "start_location": [0, 0],
+                    "start_location": [0, -7],
                     "movement": "F4"
                 }, 
                 "south": {
-                    "start_location" : [3, 5],
+                    "start_location" : [3, -2],
                     "movement": "F2"
                 },
                 "west": {
-                    "start_location" : [20, 8],
+                    "start_location" : [20, -1],
                     "movement": "F5"
                 },
                 "north": {
-                    "start_location": [15, 0],
+                    "start_location": [15, -7],
                     "movement": "F3"
                 }
             }
-        self.show_forward_examples(forward_directions)
-        self.play(FadeOut(arrow_instruction_group))
+        graph_objects = self.show_forward_examples(forward_directions)
+        # Remove boats this time, since it's the last example
         self.play(Restore(self.camera_frame))
-        self.wait(2)
+        arrow_instruction_group = Group(*arrow_instruction_group,
+                *graph_objects,
+                self.list_boat_facing_east,
+                self.list_boat_facing_north,
+                self.list_boat_facing_west,
+                self.list_boat_facing_south
+                )
+        self.play(FadeOut(arrow_instruction_group))
+        self.wait(1)
+                
 
+    def sample_display(self):
+        """
+        Sample_display changes the title and lists the sample directions 
+            (which are defined for the class).
+        Accepts:
+            None
+        Returns:
+            None -- alters table and graph
+        """
+        ## setup camera, change title, add sample input
+        self.camera_frame.save_state()
+            # change title to "Sample"
+        self.sample_title = Text("Sample", color = RED)
+        self.sample_title.move_to(5 * LEFT + 3 * UP)
+        self.play(ReplacementTransform(self.forward_title, self.sample_title))
+            # show sample directions
+        sample_directions = ["F10", "N3", "F7", "R90", "F11"]
+        input_group = Group()
+        for index, direction in enumerate(sample_directions):
+            this_input = Text(direction, 
+                    color = RED).move_to(
+                            (6 - index//5) * LEFT + (2 - index%5)*UP)
+            input_group = Group(*input_group, this_input)
+            self.play(Write(this_input))
+            # go write the directions
+        self.current_boat = self.boat_facing_east
+        self.direction_index = 0
+        self.current_location = [0, 0]
+        start_location = [0, 0]
+        boat_graph_objects = self.draw_boat_graph(sample_directions, 
+                self.current_boat, self.current_location, True)
+        end_location = self.current_location
+        ## Restore camera and conclude
+        self.play(Restore(self.camera_frame))
+        self.wait(1)
+            # show overall distance lines, braces, text
+        min_x = min(start_location[0], end_location[0])
+        max_x = max(start_location[0], end_location[0])
+        min_y = min(start_location[1], end_location[1])
+        max_y = max(start_location[1], end_location[1])
+        vertical_line = Line(self.coords_to_point(min_x, min_y), 
+                self.coords_to_point(min_x, max_y), color = GREEN, 
+                stroke_width = 8) 
+        vertical_brace = Brace(vertical_line, direction = LEFT)
+        vertical_bracetext = vertical_brace.get_text(str(max_y - min_y)
+                ).set_color(GREEN)
+        vertical_bracetext.bg = SurroundingRectangle(vertical_bracetext, 
+                color = BLACK, fill_color=BLACK, fill_opacity=1)
+        horizontal_line = Line(self.coords_to_point(min_x, min_y), 
+                self.coords_to_point(max_x, min_y), color = GREEN, 
+                stroke_width = 8) 
+        horizontal_brace = Brace(horizontal_line)
+        horizontal_bracetext = horizontal_brace.get_text(str(max_x - min_x)
+                ).set_color(GREEN)
+        horizontal_bracetext.bg = SurroundingRectangle(horizontal_bracetext, 
+                color = BLACK, fill_color=BLACK, fill_opacity=1)
+        brace_group = Group(
+            vertical_line,
+            vertical_brace,
+            vertical_bracetext.bg,
+            vertical_bracetext,
+            horizontal_line,
+            horizontal_brace,
+            horizontal_bracetext.bg,
+            horizontal_bracetext
+            )
+        total_group = Group(
+                self.sample_title,
+                self.title_bar,
+                *input_group,
+                *boat_graph_objects,
+                *brace_group)
+        self.camera_frame.save_state()
+        self.frame_camera_around_group(total_group)
+        self.play(FadeIn(brace_group))
+        horizontal_distance = max_x - min_x
+        vertical_distance = max_y - min_y
+        answer_text = Text(
+                "Answer: " + 
+                str(horizontal_distance) + 
+                " + " + 
+                str(vertical_distance) + 
+                " = " +
+                str(vertical_distance + horizontal_distance), 
+                color = GREEN).move_to(4*LEFT + 4.5 * DOWN).scale(1.1)
+        self.play(FadeIn(answer_text))
+        self.wait(1)
+    
+    def draw_boat_graph(self, 
+            direction_list, 
+            start_boat, 
+            start_location = [0, 0], 
+            show_detail = True): 
+        """
+        Draw_boat_graph draws a graph of boat movements, according to 
+            directions.
+        Accepts:
+            direction_list (list of str): List of directions
+            start_boat (ImageMobject instance): boat to be drawn
+            start_location (list of ints): beginning location
+            show_detail (bool): whether brace and explanatory text should be
+                included
+        Returns:
+            None -- draws on graph
+        """
+        self.current_boat = start_boat
+        self.current_location = start_location
+        this_graph_objects = []
+        for item in direction_list:
+            if item[0] in ['N', 'S', 'E', 'W', 'F']:
+                if item[0] == 'N':
+                    travel_direction = 'north'
+                if item[0] == 'S':
+                    travel_direction = 'south'
+                if item[0] == 'E':
+                    travel_direction = 'east'
+                if item[0] == 'W':
+                    travel_direction = 'west'
+                if item[0] == 'F':
+                    travel_direction = self.directions[self.direction_index]
+                travel_dictionary = { 
+                        'start_location': self.current_location,
+                        'movement': item
+                        }
+                this_item_objects = self.move_boat(
+                        self.current_boat, 
+                        travel_direction, 
+                        travel_dictionary, show_detail)
+            if item[0] in ['R', 'L']:
+                turn_dictionary = {
+                        'start_location': self.current_location,
+                        'movement': item
+                        }
+                this_item_objects = self.turn_boat(
+                        self.current_boat,
+                        turn_dictionary, show_detail)
+            this_graph_objects += this_item_objects
+        return this_graph_objects
+        
+
+ 
 
